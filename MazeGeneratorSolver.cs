@@ -40,6 +40,8 @@ public class MazeGeneratorSolver : MonoBehaviour {
 				}
 			}
 		}
+
+		SolveMaze();
 	}
 
 	void GenerateMaze(int ir, int ic) {

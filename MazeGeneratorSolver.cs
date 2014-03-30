@@ -18,9 +18,10 @@ public class MazeGeneratorSolver : MonoBehaviour {
 	public GameObject Start_obj;
 	public GameObject End_obj;
 	public GameObject Path_obj;
+	public bool solved = false;
 
-	private int start_r,end_r;
-	private int start_c,end_c;
+	private int start_r, end_r;
+	private int start_c, end_c;
 	private Stack<Vector3> solutionPath = new Stack<Vector3>();
 	private bool [,] visited;
 	
@@ -40,13 +41,18 @@ public class MazeGeneratorSolver : MonoBehaviour {
 				}
 			}
 		}
-
-		SolveMaze();
 	}
 
 	void GenerateMaze(int ir, int ic) {
 		// Create maze
 		maze = new int[height, width];
+
+		// starting point co-ordinates
+		start_r = ir;
+		start_c = ic;
+
+		// initialize end point (to be determined by DFS)
+		end_r = end_c = 1;
 
 		// Clear solution path
 		solutionPath.Clear();
@@ -63,18 +69,15 @@ public class MazeGeneratorSolver : MonoBehaviour {
 		Camera.main.transform.position = new Vector3(height/2,0,width/2) + Vector3.up;
 		Camera.main.orthographicSize = Mathf.Max(height,width)/1.5f;
 
-		// starting point co-ordinates
-		start_r = ir;
-		start_c = ic;
-
 		// "Destroy" wall at starting point (value = 0)
 		maze[start_r,start_c] = 0;
 
 		// Create maze using a Depth First Search (DFS) algorithm
 		// under the condition that the end point is not a wall
 		DFS(start_r,start_c); 
-		if(maze[end_r,end_c] == 1) 
-			DFS(start_r,start_c); 
+		while(maze[end_r,end_c] == 1) {
+			NewMaze(); // Create a new maze
+		}
 
 		//Instantiate start object at starting position
 		Instantiate(Start_obj, new Vector3(start_r,0,start_c),Quaternion.identity);
@@ -163,21 +166,24 @@ public class MazeGeneratorSolver : MonoBehaviour {
 		}
 	}
 
-	void Update() {
-		if(Input.GetKeyDown(KeyCode.F1)) {
-			// Retrieve all instantiated game objects and destroy them
-			GameObject[] things = GameObject.FindGameObjectsWithTag("Prefab");
-			foreach(GameObject thing in things) {
-				Destroy(thing);
-			}
-
-			// Re-start the script
-			Start ();
+	public void NewMaze() {
+		// Retrieve all instantiated game objects and destroy them
+		GameObject[] children = GameObject.FindGameObjectsWithTag("Child");
+		foreach(GameObject child in children) {
+			Destroy(child);
 		}
+
+		// Set solved to false
+		solved = false;
+
+		// Re-start the script
+		Start ();
 	}
 
-	void SolveMaze() {
-		FindPath(1,1);
+	public void SolveMaze() {
+		solved = true;
+
+		FindPath(start_r, start_c);
 		
 		Vector3[] arr = solutionPath.ToArray();
 		

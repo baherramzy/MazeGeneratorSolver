@@ -20,8 +20,8 @@ public class MazeGeneratorSolver : MonoBehaviour {
 	public GameObject Path_obj;
 	public bool solved = false;
 
-	private int start_r, end_r;
-	private int start_c, end_c;
+	private int start_r, EndRow;
+	private int start_c, EndCol;
 	private Stack<Vector3> solutionPath = new Stack<Vector3>();
 	private bool [,] visited;
 	
@@ -52,7 +52,7 @@ public class MazeGeneratorSolver : MonoBehaviour {
 		start_c = ic;
 
 		// initialize end point (to be determined by DFS)
-		end_r = end_c = 1;
+		EndRow = EndCol = 1;
 
 		// Clear solution path
 		solutionPath.Clear();
@@ -66,8 +66,8 @@ public class MazeGeneratorSolver : MonoBehaviour {
 				maze[i,j] = 1;
 
 		// Center camera
-		Camera.main.transform.position = new Vector3(height/2,0,width/2) + Vector3.up;
-		Camera.main.orthographicSize = Mathf.Max(height,width)/1.5f;
+		Camera.main.transform.position = new Vector3(height/2, 0, width/2) + Vector3.up;
+		Camera.main.orthographicSize = Mathf.Max(height, width) / 1.5f;
 
 		// "Destroy" wall at starting point (value = 0)
 		maze[start_r,start_c] = 0;
@@ -75,15 +75,30 @@ public class MazeGeneratorSolver : MonoBehaviour {
 		// Create maze using a Depth First Search (DFS) algorithm
 		// under the condition that the end point is not a wall
 		DFS(start_r,start_c); 
-		while(maze[end_r,end_c] == 1) {
+
+		while(maze[EndRow,EndCol] == 1) {
 			NewMaze(); // Create a new maze
 		}
 
 		//Instantiate start object at starting position
-		Instantiate(Start_obj, new Vector3(start_r,0,start_c),Quaternion.identity);
+		Instantiate(Start_obj, new Vector3(start_r,0,start_c), Quaternion.identity);
 
 		//Instantiate end object at ending position (top right corner of maze, determined by DFS)
-		Instantiate(End_obj, new Vector3(end_r,0,end_c),Quaternion.identity);
+		Instantiate(End_obj, new Vector3(EndRow,0,EndCol), Quaternion.identity);
+	}
+
+	public void NewMaze() {
+		// Retrieve all instantiated game objects and destroy them
+		GameObject[] children = GameObject.FindGameObjectsWithTag("Child");
+		foreach(GameObject child in children) {
+			Destroy(child);
+		}
+
+		// Set solved to false
+		solved = false;
+
+		// Re-start the script
+		Start ();
 	}
 
 	void DFS(int r, int c) {
@@ -106,8 +121,8 @@ public class MazeGeneratorSolver : MonoBehaviour {
 				{
 					maze[r - 2, c] = 0;
 					maze[r - 1, c] = 0;
-					end_r = Mathf.Max(end_r, r - 2);
-					end_c = Mathf.Max(end_c, c);
+					EndRow = Mathf.Max(EndRow, r - 2);
+					EndCol = Mathf.Max(EndCol, c);
 					DFS (r - 2, c); // recurse with new path 
 				}
 				break;
@@ -119,8 +134,8 @@ public class MazeGeneratorSolver : MonoBehaviour {
 				{ 
 					maze[r, c + 2] = 0;
 					maze[r, c + 1] = 0;
-					end_r = Mathf.Max(end_r, r);
-					end_c = Mathf.Max(end_c, c + 2);
+					EndRow = Mathf.Max(EndRow, r);
+					EndCol = Mathf.Max(EndCol, c + 2);
 					DFS (r, c + 2); // recurse with new path 
 				}
 				break;
@@ -132,8 +147,8 @@ public class MazeGeneratorSolver : MonoBehaviour {
 				{ 
 					maze[r + 2, c] = 0;
 					maze[r + 1, c] = 0;
-					end_r = Mathf.Max(end_r, r+2);
-					end_c = Mathf.Max(end_c, c);
+					EndRow = Mathf.Max(EndRow, r+2);
+					EndCol = Mathf.Max(EndCol, c);
 					DFS (r + 2, c); // recurse with new path 
 				}
 				break;
@@ -145,8 +160,8 @@ public class MazeGeneratorSolver : MonoBehaviour {
 				{
 					maze[r, c - 2] = 0;
 					maze[r, c - 1] = 0;
-					end_r = Mathf.Max(end_r, r);
-					end_c = Mathf.Max(end_c, c - 2);
+					EndRow = Mathf.Max(EndRow, r);
+					EndCol = Mathf.Max(EndCol, c - 2);
 					DFS (r, c - 2); // recurse with new path 
 				}
 				break;
@@ -166,29 +181,22 @@ public class MazeGeneratorSolver : MonoBehaviour {
 		}
 	}
 
-	public void NewMaze() {
-		// Retrieve all instantiated game objects and destroy them
-		GameObject[] children = GameObject.FindGameObjectsWithTag("Child");
-		foreach(GameObject child in children) {
-			Destroy(child);
-		}
-
-		// Set solved to false
-		solved = false;
-
-		// Re-start the script
-		Start ();
-	}
-
 	public void SolveMaze() {
 		solved = true;
 
 		FindPath(start_r, start_c);
 		
 		Vector3[] arr = solutionPath.ToArray();
-		
+		float startR, startG, startB;
+		float Rinc,Ginc,Binc; // inc = increment
+		startR = 0.0f; Rinc = 1/(255 - startR*255);
+		startG = 0.0f; Ginc = 1/(255 - startG*255);
+		startB = 0.2f; Binc = 1/(255 - startB*255);
+
 		for(int i = 0; i < arr.Length; ++i) {
 			GameObject obj = Instantiate(Path_obj,arr[i],Quaternion.identity) as GameObject;
+			Color color = new Color(startR+=Rinc, startG+=Ginc, startB+=Binc, 1.0f);
+			obj.renderer.material.color = color;
 			obj.transform.parent = Path_parent.transform;
 		}
 	}
@@ -203,7 +211,7 @@ public class MazeGeneratorSolver : MonoBehaviour {
 			return false;
 
 		// target condition
-		if(r == end_r && c == end_c)
+		if(r == EndRow && c == EndCol)
 			return true;
 
 		// mark cell as visited and add it to the solution path
